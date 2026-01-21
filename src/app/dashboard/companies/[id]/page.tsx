@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DocumentUploader } from '@/components/documents'
+import { CreateAssessmentButton } from '@/components/assessments'
 
 interface CompanyPageProps {
   params: Promise<{ id: string }>
@@ -331,10 +332,11 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
                   Generate AI-powered investment memos
                 </CardDescription>
               </div>
-              <Button disabled={!company.documents || company.documents.length === 0}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Assessment
-              </Button>
+              <CreateAssessmentButton
+                companyId={id}
+                companyName={company.name}
+                documentCount={company.documents?.length || 0}
+              />
             </CardHeader>
             <CardContent>
               {!company.documents || company.documents.length === 0 ? (
