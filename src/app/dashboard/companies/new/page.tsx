@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { CompanyForm } from '@/components/companies/company-form'
 
 export const metadata: Metadata = {
   title: 'Add Company - VentureScope',
@@ -34,9 +35,7 @@ export default function NewCompanyPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
-            Company form will be implemented in the next sprint.
-          </p>
+          <CompanyForm mode="create" />
         </CardContent>
       </Card>
     </div>

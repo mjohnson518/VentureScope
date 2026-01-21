@@ -3,15 +3,22 @@ import Link from 'next/link'
 import { Plus, Building2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/shared/empty-state'
+import { CompanyList } from '@/components/companies'
+import { CompanyFilters } from './company-filters'
 
 export const metadata: Metadata = {
   title: 'Companies - VentureScope',
   description: 'Manage your pipeline companies',
 }
 
-export default function CompaniesPage() {
-  // Placeholder - will fetch companies from database
-  const companies: unknown[] = []
+interface CompaniesPageProps {
+  searchParams: Promise<{ status?: string; search?: string }>
+}
+
+export default async function CompaniesPage({ searchParams }: CompaniesPageProps) {
+  const params = await searchParams
+  const status = params.status || 'all'
+  const search = params.search || ''
 
   return (
     <div className="space-y-6">
@@ -30,7 +37,12 @@ export default function CompaniesPage() {
         </Button>
       </div>
 
-      {companies.length === 0 ? (
+      <CompanyFilters currentStatus={status} currentSearch={search} />
+
+      <CompanyList status={status} search={search} />
+
+      {/* Empty state is shown when list returns empty */}
+      <div className="hidden first:block">
         <EmptyState
           icon={Building2}
           title="No companies yet"
@@ -40,11 +52,7 @@ export default function CompaniesPage() {
             href: '/dashboard/companies/new',
           }}
         />
-      ) : (
-        <div>
-          {/* Company list will go here */}
-        </div>
-      )}
+      </div>
     </div>
   )
 }

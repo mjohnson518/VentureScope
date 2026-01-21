@@ -77,6 +77,7 @@ export interface Document {
   extracted_text: string | null
   metadata: Record<string, unknown>
   processed_at: string | null
+  error_message: string | null
   created_at: string
 }
 
