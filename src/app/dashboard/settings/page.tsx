@@ -1,13 +1,83 @@
 import { Metadata } from 'next'
+import { redirect } from 'next/navigation'
+import { auth } from '@/lib/auth/config'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ProfileForm, NotificationSettings, SecuritySettings } from '@/components/settings'
 
 export const metadata: Metadata = {
   title: 'Settings - VentureScope',
   description: 'Manage your account settings',
 }
 
-export default function SettingsPage() {
+async function getUserProfile(userId: string) {
+  const supabase = createAdminClient()
+
+  const { data: user } = await supabase
+    .from('users')
+    .select('id, email, name, avatar_url, role')
+    .eq('id', userId)
+    .single()
+
+  return user
+}
+
+async function getNotificationSettings(userId: string) {
+  const supabase = createAdminClient()
+
+  const { data: settings } = await supabase
+    .from('user_settings')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+
+  return {
+    emailAssessments: settings?.email_assessments ?? true,
+    emailComments: settings?.email_comments ?? true,
+    emailSharing: settings?.email_sharing ?? true,
+    emailDigest: settings?.email_digest ?? false,
+  }
+}
+
+async function getActiveSessions(userId: string, currentSessionToken: string | undefined) {
+  const supabase = createAdminClient()
+
+  const { data: sessions } = await supabase
+    .from('sessions')
+    .select('id, sessionToken, expires')
+    .eq('userId', userId)
+    .gte('expires', new Date().toISOString())
+    .order('expires', { ascending: false })
+
+  if (!sessions) return []
+
+  return sessions.map((s) => ({
+    id: s.id,
+    device: 'Desktop',
+    browser: 'Browser',
+    lastActive: s.expires,
+    isCurrent: s.sessionToken === currentSessionToken,
+  }))
+}
+
+export default async function SettingsPage() {
+  const session = await auth()
+
+  if (!session?.user?.id) {
+    redirect('/login')
+  }
+
+  const [user, notificationSettings, sessions] = await Promise.all([
+    getUserProfile(session.user.id),
+    getNotificationSettings(session.user.id),
+    getActiveSessions(session.user.id, undefined), // Session token handled client-side
+  ])
+
+  if (!user) {
+    redirect('/login')
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -33,9 +103,7 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                Profile settings will be implemented in the next sprint.
-              </p>
+              <ProfileForm user={user} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -49,9 +117,7 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                Notification settings will be implemented in the next sprint.
-              </p>
+              <NotificationSettings settings={notificationSettings} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -65,9 +131,7 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                Security settings will be implemented in the next sprint.
-              </p>
+              <SecuritySettings sessions={sessions} lastPasswordChange={null} />
             </CardContent>
           </Card>
         </TabsContent>

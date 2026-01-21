@@ -54,7 +54,7 @@ const bottomNavItems = [
   },
   {
     title: 'Billing',
-    href: '/dashboard/settings/billing',
+    href: '/dashboard/billing',
     icon: CreditCard,
   },
   {

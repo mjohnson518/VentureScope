@@ -1,14 +1,15 @@
-import Anthropic from '@anthropic-ai/sdk'
+// Singleton client instance - lazy load to avoid build-time initialization
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let client: any = null
 
-// Singleton client instance
-let client: Anthropic | null = null
-
-export function getAnthropicClient(): Anthropic {
+export async function getAnthropicClient() {
   if (!client) {
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
       throw new Error('ANTHROPIC_API_KEY environment variable is not set')
     }
+    // Dynamic import to avoid build-time initialization
+    const { default: Anthropic } = await import('@anthropic-ai/sdk')
     client = new Anthropic({ apiKey })
   }
   return client

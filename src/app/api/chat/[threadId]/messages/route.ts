@@ -215,7 +215,7 @@ async function generateChatResponse(
   documents: DocumentContext[],
   assessment: { content: unknown; scores: unknown; recommendation: string; overall_score: number } | null
 ): Promise<{ response: string; citations: Array<{ source: string; text: string }> }> {
-  const client = getAnthropicClient()
+  const client = await getAnthropicClient()
 
   // Build system prompt with context
   const systemPrompt = buildChatSystemPrompt(company, documents, assessment)
@@ -236,7 +236,7 @@ async function generateChatResponse(
     messages,
   })
 
-  const textContent = response.content.find((c) => c.type === 'text')
+  const textContent = response.content.find((c: { type: string }) => c.type === 'text')
   if (!textContent || textContent.type !== 'text') {
     throw new Error('No text response from Claude')
   }

@@ -60,7 +60,7 @@ export async function generateScreeningAssessment(
   request: AssessmentRequest
 ): Promise<AssessmentResponse> {
   const startTime = Date.now()
-  const client = getAnthropicClient()
+  const client = await getAnthropicClient()
 
   const prompt = buildScreeningPrompt(request.company, request.documents)
 
@@ -75,7 +75,7 @@ export async function generateScreeningAssessment(
     ],
   })
 
-  const textContent = response.content.find((c) => c.type === 'text')
+  const textContent = response.content.find((c: { type: string }) => c.type === 'text') as { type: string; text: string } | undefined
   if (!textContent || textContent.type !== 'text') {
     throw new Error('No text response from Claude')
   }
@@ -115,7 +115,7 @@ export async function generateFullAssessment(
   request: AssessmentRequest
 ): Promise<AssessmentResponse> {
   const startTime = Date.now()
-  const client = getAnthropicClient()
+  const client = await getAnthropicClient()
 
   const prompt = buildFullAssessmentPrompt(request.company, request.documents)
 
@@ -130,7 +130,7 @@ export async function generateFullAssessment(
     ],
   })
 
-  const textContent = response.content.find((c) => c.type === 'text')
+  const textContent = response.content.find((c: { type: string }) => c.type === 'text') as { type: string; text: string } | undefined
   if (!textContent || textContent.type !== 'text') {
     throw new Error('No text response from Claude')
   }
@@ -168,7 +168,7 @@ export async function classifyDocumentWithAI(
   fileName: string,
   content: string
 ): Promise<string> {
-  const client = getAnthropicClient()
+  const client = await getAnthropicClient()
 
   const response = await client.messages.create({
     model: MODELS.CLASSIFICATION,
@@ -197,7 +197,7 @@ Respond with ONLY the classification label (e.g., "pitch_deck"), nothing else.`,
     ],
   })
 
-  const textContent = response.content.find((c) => c.type === 'text')
+  const textContent = response.content.find((c: { type: string }) => c.type === 'text') as { type: string; text: string } | undefined
   if (!textContent || textContent.type !== 'text') {
     return 'other'
   }

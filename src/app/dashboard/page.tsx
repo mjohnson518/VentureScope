@@ -1,38 +1,104 @@
 import { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 import { QuickActions } from '@/components/dashboard/quick-actions'
 import { RecentAssessments } from '@/components/dashboard/recent-assessments'
 import { StatsCards } from '@/components/dashboard/stats-cards'
 import { auth } from '@/lib/auth/config'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export const metadata: Metadata = {
   title: 'Dashboard - VentureScope',
   description: 'Your VentureScope dashboard',
 }
 
-// This would normally fetch from database
-async function getDashboardData() {
-  // Placeholder data - will be replaced with real data fetching
+async function getDashboardData(orgId: string) {
+  const supabase = createAdminClient()
+
+  // Fetch stats
+  const [companiesRes, assessmentsRes, recentRes] = await Promise.all([
+    // Total companies
+    supabase
+      .from('companies')
+      .select('id', { count: 'exact', head: true })
+      .eq('org_id', orgId),
+
+    // Total assessments (completed)
+    supabase
+      .from('assessments')
+      .select('id, overall_score, companies!inner(org_id)', { count: 'exact' })
+      .eq('companies.org_id', orgId)
+      .eq('status', 'completed'),
+
+    // Recent assessments
+    supabase
+      .from('assessments')
+      .select(`
+        id,
+        type,
+        recommendation,
+        overall_score,
+        created_at,
+        companies!inner(id, name, org_id)
+      `)
+      .eq('companies.org_id', orgId)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(5),
+  ])
+
+  // Calculate average score
+  const completedAssessments = assessmentsRes.data || []
+  const scoresWithValues = completedAssessments.filter(
+    (a) => typeof a.overall_score === 'number'
+  )
+  const avgScore =
+    scoresWithValues.length > 0
+      ? Math.round(
+          scoresWithValues.reduce((sum, a) => sum + (a.overall_score || 0), 0) /
+            scoresWithValues.length
+        )
+      : null
+
+  // Get this month's assessment count
+  const startOfMonth = new Date()
+  startOfMonth.setDate(1)
+  startOfMonth.setHours(0, 0, 0, 0)
+
+  const { count: assessmentsThisMonth } = await supabase
+    .from('assessments')
+    .select('id, companies!inner(org_id)', { count: 'exact', head: true })
+    .eq('companies.org_id', orgId)
+    .gte('created_at', startOfMonth.toISOString())
+
   return {
     stats: {
-      totalCompanies: 0,
-      totalAssessments: 0,
-      avgScore: null,
-      assessmentsThisMonth: 0,
+      totalCompanies: companiesRes.count || 0,
+      totalAssessments: assessmentsRes.count || 0,
+      avgScore,
+      assessmentsThisMonth: assessmentsThisMonth || 0,
     },
-    recentAssessments: [] as Array<{
-      id: string
-      companyName: string
-      type: 'screening' | 'full'
-      recommendation: 'strong_conviction' | 'proceed' | 'conditional' | 'pass' | null
-      overallScore: number | null
-      createdAt: string
-    }>,
+    recentAssessments: (recentRes.data || []).map((a) => {
+      const company = a.companies as unknown as { id: string; name: string; org_id: string }
+      return {
+        id: a.id,
+        companyName: company.name,
+        type: a.type as 'screening' | 'full',
+        recommendation: a.recommendation as 'strong_conviction' | 'proceed' | 'conditional' | 'pass' | null,
+        overallScore: a.overall_score,
+        createdAt: a.created_at,
+      }
+    }),
   }
 }
 
 export default async function DashboardPage() {
   const session = await auth()
-  const data = await getDashboardData()
+
+  if (!session?.user?.id || !session.user.orgId) {
+    redirect('/login')
+  }
+
+  const data = await getDashboardData(session.user.orgId)
 
   const greeting = getGreeting()
   const firstName = session?.user?.name?.split(' ')[0] || 'there'

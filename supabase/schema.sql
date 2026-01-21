@@ -146,6 +146,18 @@ CREATE TABLE IF NOT EXISTS public.usage_records (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- User Settings
+CREATE TABLE IF NOT EXISTS public.user_settings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE UNIQUE,
+  email_assessments BOOLEAN DEFAULT true,
+  email_comments BOOLEAN DEFAULT true,
+  email_sharing BOOLEAN DEFAULT true,
+  email_digest BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_companies_org_id ON public.companies(org_id);
 CREATE INDEX IF NOT EXISTS idx_documents_company_id ON public.documents(company_id);
@@ -170,6 +182,7 @@ ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assessment_shares ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assessment_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.usage_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_settings ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
 
@@ -408,6 +421,16 @@ CREATE POLICY "Org admins can view usage" ON public.usage_records
     )
   );
 
+-- User Settings: Users can manage own settings
+CREATE POLICY "Users can view own settings" ON public.user_settings
+  FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Users can insert own settings" ON public.user_settings
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can update own settings" ON public.user_settings
+  FOR UPDATE USING (user_id = auth.uid());
+
 -- Function to handle new user signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
@@ -482,4 +505,8 @@ CREATE TRIGGER update_chat_threads_updated_at
 
 CREATE TRIGGER update_assessment_comments_updated_at
   BEFORE UPDATE ON public.assessment_comments
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER update_user_settings_updated_at
+  BEFORE UPDATE ON public.user_settings
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
