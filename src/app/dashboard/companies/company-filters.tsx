@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { ViewToggle, type ViewMode } from '@/components/companies/view-toggle'
 import { useCallback, useState, useTransition } from 'react'
 
 const statuses = [
@@ -23,13 +24,15 @@ const statuses = [
 interface CompanyFiltersProps {
   currentStatus: string
   currentSearch: string
+  currentView: ViewMode
 }
 
-export function CompanyFilters({ currentStatus, currentSearch }: CompanyFiltersProps) {
+export function CompanyFilters({ currentStatus, currentSearch, currentView }: CompanyFiltersProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
   const [search, setSearch] = useState(currentSearch)
+  const [view, setView] = useState<ViewMode>(currentView)
 
   const updateFilters = useCallback(
     (key: string, value: string) => {
@@ -55,8 +58,13 @@ export function CompanyFilters({ currentStatus, currentSearch }: CompanyFiltersP
     updateFilters('search', search)
   }
 
+  const handleViewChange = (newView: ViewMode) => {
+    setView(newView)
+    updateFilters('view', newView)
+  }
+
   return (
-    <div className="flex flex-col sm:flex-row gap-4">
+    <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
       <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -67,21 +75,25 @@ export function CompanyFilters({ currentStatus, currentSearch }: CompanyFiltersP
         />
       </form>
 
-      <Select
-        value={currentStatus}
-        onValueChange={(value) => updateFilters('status', value)}
-      >
-        <SelectTrigger className="w-[160px]">
-          <SelectValue placeholder="Filter by status" />
-        </SelectTrigger>
-        <SelectContent>
-          {statuses.map((status) => (
-            <SelectItem key={status.value} value={status.value}>
-              {status.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {view !== 'kanban' && (
+        <Select
+          value={currentStatus}
+          onValueChange={(value) => updateFilters('status', value)}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            {statuses.map((status) => (
+              <SelectItem key={status.value} value={status.value}>
+                {status.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+
+      <ViewToggle view={view} onChange={handleViewChange} />
     </div>
   )
 }

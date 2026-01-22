@@ -14,8 +14,10 @@ export const metadata: Metadata = {
   description: 'Manage your pipeline companies',
 }
 
+import type { ViewMode } from '@/components/companies/view-toggle'
+
 interface CompaniesPageProps {
-  searchParams: Promise<{ status?: string; search?: string }>
+  searchParams: Promise<{ status?: string; search?: string; view?: string }>
 }
 
 export default async function CompaniesPage({ searchParams }: CompaniesPageProps) {
@@ -28,9 +30,14 @@ export default async function CompaniesPage({ searchParams }: CompaniesPageProps
   const params = await searchParams
   const status = params.status || 'all'
   const search = params.search || ''
+  const view = (params.view === 'kanban' ? 'kanban' : 'grid') as ViewMode
 
   // Server-side data fetching with React.cache - no waterfall
-  const companies = await getCompanies(session.user.orgId, { status, search })
+  // In Kanban mode, fetch all companies regardless of status filter
+  const companies = await getCompanies(session.user.orgId, {
+    status: view === 'kanban' ? 'all' : status,
+    search
+  })
 
   return (
     <div className="space-y-6">
@@ -49,7 +56,7 @@ export default async function CompaniesPage({ searchParams }: CompaniesPageProps
         </Button>
       </div>
 
-      <CompanyFilters currentStatus={status} currentSearch={search} />
+      <CompanyFilters currentStatus={status} currentSearch={search} currentView={view} />
 
       {companies.length === 0 ? (
         <EmptyState
@@ -62,7 +69,7 @@ export default async function CompaniesPage({ searchParams }: CompaniesPageProps
           } : undefined}
         />
       ) : (
-        <CompanyList initialCompanies={companies} status={status} search={search} />
+        <CompanyList initialCompanies={companies} status={status} search={search} view={view} />
       )}
     </div>
   )

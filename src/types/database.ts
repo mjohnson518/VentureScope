@@ -142,3 +142,60 @@ export interface UsageRecord {
   tokens_used: number | null
   created_at: string
 }
+
+export type SubmissionStatus = 'pending' | 'reviewing' | 'accepted' | 'rejected'
+
+export interface DealSubmission {
+  id: string
+  org_id: string
+  company_name: string
+  founder_name: string
+  founder_email: string
+  website: string | null
+  pitch_deck_url: string | null
+  stage: string | null
+  sector: string | null
+  raise_amount: number | null
+  description: string | null
+  referral_source: string | null
+  status: SubmissionStatus
+  ip_address: string | null
+  created_at: string
+  reviewed_at: string | null
+  reviewed_by: string | null
+  company_id: string | null
+  notes: string | null
+}
+
+// IC Voting types
+export type ICVote = 'strong_yes' | 'yes' | 'neutral' | 'no' | 'strong_no'
+export type ICRoundStatus = 'open' | 'closed' | 'cancelled'
+
+export interface ICVotingRound {
+  id: string
+  assessment_id: string
+  org_id: string
+  created_by: string
+  title: string | null
+  status: ICRoundStatus
+  deadline: string
+  quorum_percentage: number
+  revealed_at: string | null
+  created_at: string
+}
+
+export interface ICVoteRecord {
+  id: string
+  round_id: string
+  user_id: string
+  vote: ICVote
+  comment: string | null
+  created_at: string
+}
+
+export interface ICRoundParticipant {
+  id: string
+  round_id: string
+  user_id: string
+  invited_at: string
+}

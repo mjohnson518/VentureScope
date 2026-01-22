@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { QuickActions } from '@/components/dashboard/quick-actions'
 import { RecentAssessments } from '@/components/dashboard/recent-assessments'
 import { StatsCards } from '@/components/dashboard/stats-cards'
+import { PendingVotes } from '@/components/dashboard/pending-votes'
 import { auth } from '@/lib/auth/config'
 import { getDashboardStats } from '@/lib/data'
 
@@ -41,7 +42,10 @@ export default async function DashboardPage() {
 
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <QuickActions />
+        <div className="space-y-6">
+          <QuickActions />
+          <PendingVotes />
+        </div>
         <RecentAssessments assessments={data.recentAssessments} />
       </div>
     </div>

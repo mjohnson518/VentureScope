@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { OverallScoreCard, ScoresGrid } from '@/components/assessments'
+import { ICVotingSection } from '@/components/ic-voting'
 
 interface AssessmentPageProps {
   params: Promise<{ id: string }>
@@ -89,6 +90,23 @@ export default async function AssessmentPage({ params }: AssessmentPageProps) {
   }
 
   const company = assessment.companies as { id: string; name: string; stage: string; sector: string }
+
+  // Fetch team members for IC voting
+  const { data: teamMembers } = await supabase
+    .from('org_memberships')
+    .select('user_id, users(id, name, email)')
+    .eq('org_id', session.user.orgId)
+
+  const formattedTeamMembers = (teamMembers || []).map((m) => {
+    const user = m.users as unknown as { id: string; name: string | null; email: string } | null
+    return {
+      id: user?.id || m.user_id,
+      name: user?.name || null,
+      email: user?.email || '',
+    }
+  })
+
+  const isAdmin = session.user.orgRole === 'admin' || session.user.orgRole === 'owner'
 
   // Handle processing state
   if (assessment.status === 'processing') {
@@ -327,6 +345,20 @@ export default async function AssessmentPage({ params }: AssessmentPageProps) {
               </ul>
             </CardContent>
           </Card>
+
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>IC Voting</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ICVotingSection
+                assessmentId={assessment.id}
+                teamMembers={formattedTeamMembers}
+                isAdmin={isAdmin}
+                currentUserId={session.user.id}
+              />
+            </CardContent>
+          </Card>
         </div>
       ) : (
         <Tabs defaultValue="analysis" className="space-y-4">
@@ -334,6 +366,7 @@ export default async function AssessmentPage({ params }: AssessmentPageProps) {
             <TabsTrigger value="analysis">Analysis</TabsTrigger>
             <TabsTrigger value="thesis">Investment Thesis</TabsTrigger>
             <TabsTrigger value="risks">Risks</TabsTrigger>
+            <TabsTrigger value="ic-voting">IC Voting</TabsTrigger>
           </TabsList>
 
           <TabsContent value="analysis" className="space-y-4">
@@ -505,6 +538,15 @@ export default async function AssessmentPage({ params }: AssessmentPageProps) {
                 </p>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="ic-voting" className="space-y-4">
+            <ICVotingSection
+              assessmentId={assessment.id}
+              teamMembers={formattedTeamMembers}
+              isAdmin={isAdmin}
+              currentUserId={session.user.id}
+            />
           </TabsContent>
         </Tabs>
       )}

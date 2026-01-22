@@ -85,6 +85,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       'status',
       'website',
       'description',
+      'pipeline_position',
     ]
 
     // Filter only allowed fields

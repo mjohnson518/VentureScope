@@ -14,6 +14,7 @@ export interface Company {
   created_at: string
   documentCount: number
   assessmentCount: number
+  pipeline_position: number
 }
 
 /**
@@ -64,6 +65,7 @@ export const getCompanies = cache(async (
     created_at: company.created_at,
     documentCount: (company.documents as { count: number }[])?.[0]?.count || 0,
     assessmentCount: (company.assessments as { count: number }[])?.[0]?.count || 0,
+    pipeline_position: company.pipeline_position ?? 0,
   }))
 })
 
@@ -105,5 +107,6 @@ export const getCompanyById = cache(async (
     created_at: data.created_at,
     documentCount: (data.documents as { count: number }[])?.[0]?.count || 0,
     assessmentCount: (data.assessments as { count: number }[])?.[0]?.count || 0,
+    pipeline_position: data.pipeline_position ?? 0,
   }
 })
