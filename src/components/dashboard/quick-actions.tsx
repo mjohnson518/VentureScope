@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import { Plus, Upload, FileText, MessageSquare } from 'lucide-react'
+import { Plus, Upload, FileText, MessageSquare, ArrowRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 const actions = [
   {
@@ -9,56 +9,81 @@ const actions = [
     description: 'Add a new company to evaluate',
     icon: Plus,
     href: '/dashboard/companies/new',
-    variant: 'default' as const,
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+    hoverBg: 'hover:bg-primary/5',
+    primary: true,
   },
   {
     title: 'Upload Documents',
     description: 'Add documents to an existing company',
     icon: Upload,
     href: '/dashboard/companies',
-    variant: 'outline' as const,
+    color: 'text-blue-600 dark:text-blue-400',
+    bgColor: 'bg-blue-500/10',
+    hoverBg: 'hover:bg-blue-500/5',
+    primary: false,
   },
   {
     title: 'Generate Assessment',
     description: 'Create a new investment memo',
     icon: FileText,
     href: '/dashboard/assessments/new',
-    variant: 'outline' as const,
+    color: 'text-emerald-600 dark:text-emerald-400',
+    bgColor: 'bg-emerald-500/10',
+    hoverBg: 'hover:bg-emerald-500/5',
+    primary: false,
   },
   {
     title: 'Start Chat',
     description: 'Ask questions about a deal',
     icon: MessageSquare,
     href: '/dashboard/companies',
-    variant: 'outline' as const,
+    color: 'text-amber-600 dark:text-amber-400',
+    bgColor: 'bg-amber-500/10',
+    hoverBg: 'hover:bg-amber-500/5',
+    primary: false,
   },
 ]
 
 export function QuickActions() {
   return (
-    <Card>
+    <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
       <CardHeader>
-        <CardTitle>Quick Actions</CardTitle>
+        <CardTitle className="font-display">Quick Actions</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {actions.map((action) => (
-            <Button
+        <div className="grid gap-3 sm:grid-cols-2 stagger-children">
+          {actions.map((action, index) => (
+            <Link
               key={action.title}
-              variant={action.variant}
-              className="h-auto flex-col items-start gap-1 p-4"
-              asChild
+              href={action.href}
+              className={cn(
+                'group relative flex items-start gap-4 rounded-xl border p-4 transition-all duration-200',
+                action.primary
+                  ? 'border-primary/30 bg-primary/5 hover:border-primary/50 hover:bg-primary/10'
+                  : `border-border/50 bg-card ${action.hoverBg} hover:border-border`
+              )}
+              style={{ animationDelay: `${index * 50}ms` }}
             >
-              <Link href={action.href}>
-                <div className="flex w-full items-center gap-2">
-                  <action.icon className="h-4 w-4" />
+              <div
+                className={cn(
+                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-110',
+                  action.bgColor
+                )}
+              >
+                <action.icon className={cn('h-5 w-5', action.color)} />
+              </div>
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center justify-between">
                   <span className="font-medium">{action.title}</span>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 -translate-x-2 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0" />
                 </div>
-                <span className="text-xs text-muted-foreground font-normal">
+                <p className="text-sm text-muted-foreground">
                   {action.description}
-                </span>
-              </Link>
-            </Button>
+                </p>
+              </div>
+            </Link>
           ))}
         </div>
       </CardContent>

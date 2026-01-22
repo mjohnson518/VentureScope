@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { cn } from '@/lib/utils'
 import { User, Bot, FileText } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -22,7 +23,7 @@ interface ChatMessageProps {
   timestamp?: string
 }
 
-export function ChatMessage({ role, content, citations, timestamp }: ChatMessageProps) {
+export const ChatMessage = memo(function ChatMessage({ role, content, citations, timestamp }: ChatMessageProps) {
   const isUser = role === 'user'
 
   return (
@@ -81,4 +82,4 @@ export function ChatMessage({ role, content, citations, timestamp }: ChatMessage
       </div>
     </div>
   )
-}
+})

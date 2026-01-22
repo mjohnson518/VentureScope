@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import {
-  Building2,
   FileText,
   ClipboardCheck,
   ExternalLink,
@@ -43,7 +43,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 
-interface Company {
+export interface Company {
   id: string
   name: string
   stage: string | null
@@ -88,39 +88,21 @@ function formatCurrency(value: number): string {
 }
 
 interface CompanyListProps {
+  initialCompanies: Company[]
   status?: string
   search?: string
 }
 
-export function CompanyList({ status, search }: CompanyListProps) {
-  const [companies, setCompanies] = useState<Company[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+export function CompanyList({ initialCompanies, status, search }: CompanyListProps) {
+  const router = useRouter()
+  const [companies, setCompanies] = useState<Company[]>(initialCompanies)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const fetchCompanies = async () => {
-    setIsLoading(true)
-    try {
-      const params = new URLSearchParams()
-      if (status && status !== 'all') params.append('status', status)
-      if (search) params.append('search', search)
-
-      const response = await fetch(`/api/companies?${params.toString()}`)
-      if (!response.ok) throw new Error('Failed to fetch companies')
-
-      const data = await response.json()
-      setCompanies(data)
-    } catch (error) {
-      console.error('Error fetching companies:', error)
-      toast.error('Failed to load companies')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchCompanies()
-  }, [status, search])
+  // Refresh data from server after mutations
+  const refreshData = useCallback(() => {
+    router.refresh()
+  }, [router])
 
   const handleDelete = async () => {
     if (!deleteId) return
@@ -133,8 +115,11 @@ export function CompanyList({ status, search }: CompanyListProps) {
 
       if (!response.ok) throw new Error('Failed to delete company')
 
+      // Optimistic update
       setCompanies((prev) => prev.filter((c) => c.id !== deleteId))
       toast.success('Company deleted')
+      // Refresh server data in background
+      refreshData()
     } catch (error) {
       console.error('Error deleting company:', error)
       toast.error('Failed to delete company')
@@ -144,30 +129,22 @@ export function CompanyList({ status, search }: CompanyListProps) {
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
-
-  if (companies.length === 0) {
-    return null
-  }
-
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {companies.map((company) => (
-          <Card key={company.id} className="hover:shadow-md transition-shadow">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
+        {companies.map((company, index) => (
+          <Card
+            key={company.id}
+            className="group border-border/50 bg-card/80 backdrop-blur-sm hover-lift"
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                  <CardTitle className="text-lg">
+                  <CardTitle className="text-lg font-display">
                     <Link
                       href={`/dashboard/companies/${company.id}`}
-                      className="hover:underline"
+                      className="hover:text-primary transition-colors"
                     >
                       {company.name}
                     </Link>

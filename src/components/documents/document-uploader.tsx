@@ -71,83 +71,86 @@ export function DocumentUploader({ companyId, onUploadComplete }: DocumentUpload
     setFiles((prev) => prev.filter((f) => f.id !== id))
   }
 
+  const uploadSingleFile = async (fileItem: FileWithProgress): Promise<string | null> => {
+    try {
+      // Update status to uploading
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === fileItem.id ? { ...f, status: 'uploading' as const } : f
+        )
+      )
+
+      // Create form data
+      const formData = new FormData()
+      formData.append('file', fileItem.file)
+      formData.append('companyId', companyId)
+
+      // Upload file
+      const response = await fetch('/api/documents', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Upload failed')
+      }
+
+      const data = await response.json()
+
+      // Update progress to 100%
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === fileItem.id ? { ...f, progress: 100, status: 'processing' as const } : f
+        )
+      )
+
+      // Trigger document processing (fire and forget - processing happens async)
+      fetch('/api/documents/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: data.id }),
+      }).catch(() => {
+        // Processing errors are handled server-side
+      })
+
+      // Update status to complete
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === fileItem.id ? { ...f, status: 'complete' as const } : f
+        )
+      )
+
+      return data.id
+    } catch {
+      // Update status to error
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === fileItem.id
+            ? { ...f, status: 'error' as const, error: 'Upload failed' }
+            : f
+        )
+      )
+      toast.error(`Failed to upload ${fileItem.file.name}`)
+      return null
+    }
+  }
+
   const uploadFiles = async () => {
     const pendingFiles = files.filter((f) => f.status === 'pending')
     if (pendingFiles.length === 0) return
 
     setIsUploading(true)
-    const uploadedIds: string[] = []
 
-    for (const fileItem of pendingFiles) {
-      try {
-        // Update status to uploading
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileItem.id ? { ...f, status: 'uploading' as const } : f
-          )
-        )
+    // Upload all files in parallel using Promise.allSettled
+    const results = await Promise.allSettled(
+      pendingFiles.map((fileItem) => uploadSingleFile(fileItem))
+    )
 
-        // Create form data
-        const formData = new FormData()
-        formData.append('file', fileItem.file)
-        formData.append('companyId', companyId)
-
-        // Upload file
-        const response = await fetch('/api/documents', {
-          method: 'POST',
-          body: formData,
-        })
-
-        if (!response.ok) {
-          throw new Error('Upload failed')
-        }
-
-        const data = await response.json()
-
-        // Update progress during upload (simulated for now)
-        for (let progress = 0; progress <= 100; progress += 20) {
-          setFiles((prev) =>
-            prev.map((f) =>
-              f.id === fileItem.id ? { ...f, progress } : f
-            )
-          )
-          await new Promise((resolve) => setTimeout(resolve, 100))
-        }
-
-        // Update status to processing
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileItem.id ? { ...f, status: 'processing' as const } : f
-          )
-        )
-
-        // Trigger document processing
-        await fetch('/api/documents/process', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ documentId: data.id }),
-        })
-
-        // Update status to complete
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileItem.id ? { ...f, status: 'complete' as const } : f
-          )
-        )
-
-        uploadedIds.push(data.id)
-      } catch (error) {
-        // Update status to error
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileItem.id
-              ? { ...f, status: 'error' as const, error: 'Upload failed' }
-              : f
-          )
-        )
-        toast.error(`Failed to upload ${fileItem.file.name}`)
-      }
-    }
+    // Collect successful upload IDs
+    const uploadedIds = results
+      .filter((r): r is PromiseFulfilledResult<string | null> => r.status === 'fulfilled')
+      .map((r) => r.value)
+      .filter((id): id is string => id !== null)
 
     setIsUploading(false)
 

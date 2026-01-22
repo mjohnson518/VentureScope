@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { MessageSquare, Plus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -46,28 +46,8 @@ export function ChatInterface({ companyId, companyName }: ChatInterfaceProps) {
   const [isSending, setIsSending] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Fetch threads
-  useEffect(() => {
-    fetchThreads()
-  }, [companyId])
-
-  // Fetch messages when thread changes
-  useEffect(() => {
-    if (currentThreadId) {
-      fetchMessages(currentThreadId)
-    } else {
-      setMessages([])
-    }
-  }, [currentThreadId])
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }, [messages])
-
-  const fetchThreads = async () => {
+  // Define callbacks first (before useEffects that use them)
+  const fetchThreads = useCallback(async () => {
     try {
       const response = await fetch(`/api/chat?companyId=${companyId}`)
       if (!response.ok) throw new Error('Failed to fetch threads')
@@ -75,15 +55,15 @@ export function ChatInterface({ companyId, companyName }: ChatInterfaceProps) {
       setThreads(data)
 
       // Auto-select first thread if exists
-      if (data.length > 0 && !currentThreadId) {
-        setCurrentThreadId(data[0].id)
+      if (data.length > 0) {
+        setCurrentThreadId((prev) => prev || data[0].id)
       }
     } catch (error) {
       console.error('Error fetching threads:', error)
     }
-  }
+  }, [companyId])
 
-  const fetchMessages = async (threadId: string) => {
+  const fetchMessages = useCallback(async (threadId: string) => {
     setIsLoading(true)
     try {
       const response = await fetch(`/api/chat/${threadId}/messages`)
@@ -96,9 +76,9 @@ export function ChatInterface({ companyId, companyName }: ChatInterfaceProps) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
-  const createThread = async () => {
+  const createThread = useCallback(async () => {
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -114,9 +94,59 @@ export function ChatInterface({ companyId, companyName }: ChatInterfaceProps) {
       console.error('Error creating thread:', error)
       toast.error('Failed to create chat')
     }
-  }
+  }, [companyId])
 
-  const sendMessage = async (content: string) => {
+  const sendMessageToThread = useCallback(async (threadId: string, content: string) => {
+    setIsSending(true)
+
+    // Optimistically add user message
+    const tempId = `temp-${Date.now()}`
+    const tempUserMessage: Message = {
+      id: tempId,
+      role: 'user',
+      content,
+      citations: [],
+      created_at: new Date().toISOString(),
+    }
+    setMessages((prev) => [...prev, tempUserMessage])
+
+    try {
+      const response = await fetch(`/api/chat/${threadId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      })
+
+      if (!response.ok) throw new Error('Failed to send message')
+
+      const data = await response.json()
+
+      // Replace temp message and add AI response
+      setMessages((prev) => [
+        ...prev.filter((m) => m.id !== tempId),
+        data.userMessage,
+        data.assistantMessage,
+      ])
+
+      // Update thread in list
+      setThreads((prev) =>
+        prev.map((t) =>
+          t.id === threadId
+            ? { ...t, updated_at: new Date().toISOString(), messageCount: t.messageCount + 2 }
+            : t
+        )
+      )
+    } catch (error) {
+      console.error('Error sending message:', error)
+      toast.error('Failed to send message')
+      // Remove optimistic message
+      setMessages((prev) => prev.filter((m) => m.id !== tempId))
+    } finally {
+      setIsSending(false)
+    }
+  }, [])
+
+  const sendMessage = useCallback(async (content: string) => {
     if (!currentThreadId) {
       // Create a thread first if none exists
       try {
@@ -140,56 +170,26 @@ export function ChatInterface({ companyId, companyName }: ChatInterfaceProps) {
     }
 
     await sendMessageToThread(currentThreadId, content)
-  }
+  }, [companyId, currentThreadId, sendMessageToThread])
 
-  const sendMessageToThread = async (threadId: string, content: string) => {
-    setIsSending(true)
+  // useEffect hooks (after all useCallback declarations)
+  useEffect(() => {
+    fetchThreads()
+  }, [fetchThreads])
 
-    // Optimistically add user message
-    const tempUserMessage: Message = {
-      id: `temp-${Date.now()}`,
-      role: 'user',
-      content,
-      citations: [],
-      created_at: new Date().toISOString(),
+  useEffect(() => {
+    if (currentThreadId) {
+      fetchMessages(currentThreadId)
+    } else {
+      setMessages([])
     }
-    setMessages((prev) => [...prev, tempUserMessage])
+  }, [currentThreadId, fetchMessages])
 
-    try {
-      const response = await fetch(`/api/chat/${threadId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
-      })
-
-      if (!response.ok) throw new Error('Failed to send message')
-
-      const data = await response.json()
-
-      // Replace temp message and add AI response
-      setMessages((prev) => [
-        ...prev.filter((m) => m.id !== tempUserMessage.id),
-        data.userMessage,
-        data.assistantMessage,
-      ])
-
-      // Update thread in list
-      setThreads((prev) =>
-        prev.map((t) =>
-          t.id === threadId
-            ? { ...t, updated_at: new Date().toISOString(), messageCount: t.messageCount + 2 }
-            : t
-        )
-      )
-    } catch (error) {
-      console.error('Error sending message:', error)
-      toast.error('Failed to send message')
-      // Remove optimistic message
-      setMessages((prev) => prev.filter((m) => m.id !== tempUserMessage.id))
-    } finally {
-      setIsSending(false)
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }
+  }, [messages])
 
   return (
     <Card className="h-[600px] flex flex-col">
@@ -292,7 +292,7 @@ export function ChatInterface({ companyId, companyName }: ChatInterfaceProps) {
   )
 }
 
-function SuggestionChip({
+const SuggestionChip = memo(function SuggestionChip({
   text,
   onClick,
   disabled,
@@ -310,4 +310,4 @@ function SuggestionChip({
       {text}
     </button>
   )
-}
+})
