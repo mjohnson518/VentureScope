@@ -1,8 +1,7 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { Bell, Search, Moon, Sun, Command } from 'lucide-react'
-import { useTheme } from 'next-themes'
+import { Bell, Search, Command } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -14,12 +13,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { SignOutButton } from '@/components/auth/sign-out-button'
 import Link from 'next/link'
 
 export function Header() {
   const { data: session } = useSession()
-  const { theme, setTheme } = useTheme()
 
   const userInitials = session?.user?.name
     ?.split(' ')
@@ -45,16 +44,7 @@ export function Header() {
 
       <div className="flex items-center gap-1">
         {/* Theme Toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 rounded-xl hover:bg-muted/50 transition-colors"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-        >
-          <Sun className="h-[18px] w-[18px] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-[18px] w-[18px] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          <span className="sr-only">Toggle theme</span>
-        </Button>
+        <ThemeToggle variant="dropdown" />
 
         {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl hover:bg-muted/50 transition-colors">
