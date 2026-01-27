@@ -129,15 +129,20 @@ export function PricingCards({ currentPlan = 'free' }: PricingCardsProps) {
           <Card
             key={plan.id}
             className={cn(
-              'relative',
-              plan.popular && 'border-primary shadow-lg'
+              'relative overflow-hidden transition-all duration-300 hover:-translate-y-1',
+              plan.popular
+                ? 'border-primary shadow-xl shadow-primary/10'
+                : 'bg-card/80 backdrop-blur-sm hover:shadow-lg'
             )}
           >
             {plan.popular && (
-              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <Sparkles className="h-3 w-3 mr-1" />
-                Most Popular
-              </Badge>
+              <>
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-primary" />
+                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Most Popular
+                </Badge>
+              </>
             )}
 
             <CardHeader>
@@ -149,18 +154,18 @@ export function PricingCards({ currentPlan = 'free' }: PricingCardsProps) {
               <div className="mb-6">
                 {plan.price !== null ? (
                   <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold">${plan.price}</span>
+                    <span className="text-4xl font-bold font-display tracking-tight">${plan.price}</span>
                     <span className="text-muted-foreground">/month</span>
                   </div>
                 ) : (
-                  <div className="text-4xl font-bold">Custom</div>
+                  <div className="text-4xl font-bold font-display tracking-tight">Custom</div>
                 )}
               </div>
 
               <ul className="space-y-2">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2 text-sm">
-                    <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                    <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                     {feature}
                   </li>
                 ))}
