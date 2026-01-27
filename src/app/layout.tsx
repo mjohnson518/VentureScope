@@ -26,9 +26,32 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "500"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://venturescope.vercel.app'
+
 export const metadata: Metadata = {
-  title: "VentureScope - AI-Powered VC Due Diligence",
-  description: "Transform 40-80 hours of manual due diligence into a 5-minute AI-powered analysis",
+  title: {
+    default: 'VentureScope - AI-Powered VC Due Diligence',
+    template: '%s | VentureScope',
+  },
+  description: 'Transform 40-80 hours of manual due diligence into a 5-minute AI-powered analysis. Generate investment memos, analyze documents, and make better decisions faster.',
+  metadataBase: new URL(siteUrl),
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: siteUrl,
+    siteName: 'VentureScope',
+    title: 'VentureScope - AI-Powered VC Due Diligence',
+    description: 'Transform 40-80 hours of manual due diligence into a 5-minute AI-powered analysis. Generate investment memos, analyze documents, and make better decisions faster.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'VentureScope - AI-Powered VC Due Diligence',
+    description: 'Transform 40-80 hours of manual due diligence into a 5-minute AI-powered analysis.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
