@@ -11,6 +11,9 @@ dist
 
 # Testing
 coverage
+e2e/playwright-report/
+e2e/test-results/
+playwright/.cache/
 
 # Environment files
 .env
@@ -48,4 +51,5 @@ Thumbs.db
 *.log
 
 # Docs
-DEPLOYMENT.mdsupabase/.temp/
+DEPLOYMENT.md
+supabase/.temp/

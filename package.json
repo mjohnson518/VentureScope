@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "STRIPE_SECRET_KEY=sk_placeholder_for_build ANTHROPIC_API_KEY=sk-placeholder-for-build next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report e2e/playwright-report"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
@@ -51,6 +54,7 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
